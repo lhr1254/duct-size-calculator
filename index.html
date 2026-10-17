@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#12334b"><title>산업환기 덕트 사이즈 계산기</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef3f7;color:#183047;font-family:system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif}main{max-width:620px;margin:32px auto;padding:0 16px}h1{font-size:1.55rem;margin-bottom:5px}p{color:#566b7b;line-height:1.55}.panel{background:white;border-radius:18px;padding:24px;box-shadow:0 5px 24px #18304715;margin-top:20px}label{display:block;font-weight:700;margin:18px 0 7px}input,select{width:100%;border:1px solid #b9cbd6;border-radius:10px;padding:13px;font-size:1.1rem;background:#fff;color:#183047}input:focus,select:focus{outline:2px solid #2779a4}button{border:0;border-radius:10px;padding:13px;background:#155c83;color:#fff;font-weight:700;font-size:1rem;cursor:pointer;width:100%;margin-top:16px}.result{background:#eaf5fb;border-radius:14px;padding:18px;margin-top:22px}.big{font-size:1.8rem;font-weight:800;color:#075e8b;margin:8px 0}.detail{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #d1e3ed}.detail span:last-child{text-align:right;font-weight:700}.hint{font-size:.84rem;color:#667987}footer{font-size:.8rem;margin:24px 0;color:#617382}#error{color:#b12e36;font-weight:600} .hidden{display:none} .tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px} .tabs button{margin:0;background:#dce8ef;color:#20455e}.tabs button.active{background:#155c83;color:white}
+</style></head>
+<body><main><h1>산업환기 덕트 사이즈 계산기</h1><p>풍량(㎥/min)과 덕트 반송속도(m/s)를 입력하여 덕트 내부 치수를 계산합니다.</p>
+<section class="panel"><div class="tabs"><button type="button" id="roundBtn" class="active">원형 덕트</button><button type="button" id="rectBtn">사각 덕트</button></div>
+<label for="q">풍량 Q (㎥/min)</label><input id="q" type="number" min="0" step="any" value="60" inputmode="decimal">
+<label for="v">반송속도 V (m/s)</label><input id="v" type="number" min="0" step="any" value="15" inputmode="decimal">
+<div id="ratioBox" class="hidden"><label for="ratio">사각 덕트 가로 : 세로</label><select id="ratio"><option value="1">1 : 1</option><option value="1.5" selected>1.5 : 1</option><option value="2">2 : 1</option></select></div>
+<p id="error" role="alert"></p><div id="result" class="result" aria-live="polite"></div><button type="button" id="copy">결과 복사</button></section>
+<footer>이 계산기는 유량 연속식 Q=AV에 기반한 기초 치수 계산용입니다. 실제 설계 시 덕트 내경, 오염물질별 최소 반송속도, 압력손실, 분기관 균형 및 적용 규격을 별도 검토하세요. 표시되는 후보 직경은 공인 표준규격 판정이 아닌 예시 목록입니다.</footer></main>
+<script>
+const $=id=>document.getElementById(id);let shape='round',copyText='';
+const sizes=[75,100,125,150,175,200,225,250,275,300,315,350,355,400,450,500,550,560,600,630,650,700,710,750,800,900,1000,1100,1200,1250,1400,1500,1600,1800,2000];
+function fmt(n,d=2){return n.toLocaleString('ko-KR',{maximumFractionDigits:d,minimumFractionDigits:d})}
+function calc(){const q=Number($('q').value),v=Number($('v').value),r=Number($('ratio').value);$('error').textContent='';$('result').innerHTML='';copyText='';
+if(!$('q').value||!$('v').value||!Number.isFinite(q)||!Number.isFinite(v)||q<=0||v<=0){$('error').textContent='풍량과 반송속도에 0보다 큰 숫자를 입력하세요.';return}
+const a=q/(60*v),d=Math.sqrt(4*a/Math.PI)*1000;let lines=[];
+if(shape==='round'){const closest=sizes.reduce((x,y)=>Math.abs(x-d)<=Math.abs(y-d)?x:y);const actual=q/60/(Math.PI*(closest/1000)**2/4);lines=[['이론 직경',`Ø ${fmt(d,1)} mm`],['예시 목록의 가장 가까운 직경',`Ø ${closest} mm`],['해당 직경의 실제 속도',`${fmt(actual)} m/s`]];copyText=`원형 덕트\n풍량: ${q} ㎥/min\n반송속도: ${v} m/s\n이론 내경: ${fmt(d,1)} mm\n예시 후보: Ø ${closest} mm\n후보 적용 풍속: ${fmt(actual)} m/s`}
+else{const w=Math.sqrt(a*r)*1000,h=Math.sqrt(a/r)*1000;lines=[['이론 가로',`${fmt(w,1)} mm`],['이론 세로',`${fmt(h,1)} mm`]];copyText=`사각 덕트\n풍량: ${q} ㎥/min\n반송속도: ${v} m/s\n이론 치수: ${fmt(w,1)} × ${fmt(h,1)} mm`}
+const heading=shape==='round'?lines[0][1]:`${lines[0][1].replace(' mm','')} × ${lines[1][1]}`;
+$('result').innerHTML=`<div class="hint">계산 결과</div><div class="big">${heading}</div>`+lines.map(([k,val])=>`<div class="detail"><span>${k}</span><span>${val}</span></div>`).join('')+`<div class="detail"><span>필요 단면적</span><span>${fmt(a,4)} ㎡</span></div>`;copyText+=`\n필요 단면적: ${fmt(a,4)} ㎡`}
+function choose(s){shape=s;$('ratioBox').classList.toggle('hidden',s!=='rect');$('roundBtn').classList.toggle('active',s==='round');$('rectBtn').classList.toggle('active',s==='rect');calc()}
+$('roundBtn').onclick=()=>choose('round');$('rectBtn').onclick=()=>choose('rect');['q','v','ratio'].forEach(id=>$(id).addEventListener('input',calc));$('copy').onclick=async()=>{if(!copyText)return;try{await navigator.clipboard.writeText(copyText);$('copy').textContent='복사 완료';setTimeout(()=>$('copy').textContent='결과 복사',1600)}catch{alert('복사할 수 없습니다. HTTPS로 접속했는지 확인하세요.')}};calc();
+</script></body></html>
